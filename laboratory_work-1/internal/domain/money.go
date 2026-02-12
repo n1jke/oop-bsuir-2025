@@ -11,6 +11,14 @@ func NewMoney(amount int, curr Currency) Money {
 	return Money{amount: amount, curr: curr}
 }
 
+func (m Money) Amount() int {
+	return m.amount
+}
+
+func (m Money) Currency() Currency {
+	return m.curr
+}
+
 func (m Money) Add(other Money) Money {
 	return Money{amount: m.amount + other.amount, curr: m.curr}
 }

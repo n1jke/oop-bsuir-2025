@@ -14,10 +14,12 @@ type PaymentService interface {
 type AccountRepository interface {
 	Create(a PaymentAccount) error
 	ChangeStatus(aUUID uuid.UUID, s domain.AccountStatus) error
+	ByUUID(aUUID uuid.UUID) (PaymentAccount, error)
 }
 
 type EventService interface {
 	Publish(e domain.Event) error
+	QueryAll() []domain.Event
 }
 
 type PaymentAccount interface {

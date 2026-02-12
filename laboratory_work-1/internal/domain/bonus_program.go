@@ -29,6 +29,6 @@ func (b *BonusProgram) ApplyBonus(points int) bool {
 	return true
 }
 
-func (b BonusProgram) Points() int {
+func (b BonusProgram) Bonus() int {
 	return b.points
 }

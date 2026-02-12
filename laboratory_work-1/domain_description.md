@@ -1,25 +1,25 @@
 # Описание предметной области: Банк
 
 ## Цель
-Моделирование домена(базовые сущности и процессы) - банковской системы с использованием принципов ООП. Проект в себе несет базовые операции без использования излишней бизнес логики : открытие счетов, пополнение, снятие, перевод, фиксацию транзакций и публикацию событий.
+Моделирование домена банковской системы с использованием принципов ООП и расширение связей между сущностями с помощью наследования, композиции и агрегации. Проект описывает базовые операции: открытие счетов, пополнение, снятие, перевод, фиксацию транзакций и публикацию событий.
 
 ## Основные сущности
 
-### Value Object: 
-
-`Money` описывает денежную величину и валюту. Это неизменяемый объект, используемый везде, где требуется представление сумм
+### Value Object
+`Money` описывает денежную величину и валюту. Поля закрыты, изменение только через операции сложения/вычитания.
 
 ```
 type Money struct {
-    amount   int64
-    currency Currency
+    amount int
+    curr   Currency
 }
 type Currency string
 ```
 
-`type value_object_name type` - value-object значения и перечисления базовых состояний процессов
+### Перечисления
+
 ```
-type TransactionType int - тип банковской транзакции, для корректной обработки и разделения типов транзакций
+type TransactionType int
 const (
     Transfer TransactionType = iota + 1
     Deposit
@@ -28,9 +28,9 @@ const (
 ```
 
 ```
-type PaymentStatus int - текущий статус платежа, для изменения состояние тразакции и создание ивентов 
+type PaymentStatus int
 const (
-    Initiated PaymentStatus = iota + 1
+    Initiated PaymentStatus = iota
     Pending
     Declined
     Failed
@@ -39,7 +39,7 @@ const (
 ```
 
 ```
-type AccountStatus int - статус банковского акканута, для отслеживая возможности проведения операций и поддержания логики
+type AccountStatus int
 const (
     Active AccountStatus = iota + 1
     Frozen
@@ -47,94 +47,134 @@ const (
 )
 ```
 
-### Entity:
-`Client` Клиент банка. Содержит персональные данные и идентификатор. Выделен интерфейс для инкапсуляции полей класса и добавления валидаций, обеспечения консистености данных
+```
+type BonusTier int
+const (
+    Bronze BonusTier = iota + 1
+    Silver
+    Gold
+)
+```
+
+### Entity
+`Client` — клиент банка. Содержит персональные данные и список счетов (агрегация).
 
 ```
 Client
-- id: uuid
-- firstName: string
-- lastName: string
-- surName: string
+- clientUUID: uuid.UUID
+- Person: Person
+- accounts: []AccountRef
+```
+
+`Person` — персональные данные (композиция в составе `Client`).
+
+```
+Person
+- firstname: string
+- lastname: string
+- surname: string
 - birthdayDate: time.Time
 ```
 
-`Account` Счет принадлежит клиенту, имеет уникальный идентификатор, статус и баланс. Используется как базовая сущность для кастомных счетов. Выделен интерфейс для инкапсуляции полей класса и добавления валидаций, обеспечения консистености данных
+`Account` — базовый счет. Используется как основа для специализированных типов.
 
 ```
 Account
-- userUUID: uuid
+- userUUID: uuid.UUID
+- accountUUID: uuid.UUID
 - status: AccountStatus
 - balance: Money
 ```
 
-#### Виды счетов 
-1. **Накопительный (SavingsAccount)**  
-   Имеет бонусную программу; при пополнении начисляет бонусные баллы
-2. **Кредитный (CreditAccount)**  
-   Имеет `overdraftLimit` и разрешает уходить в минус в пределах лимита
-3. **Бонусный (BonusAccount)**  
-   Savings с расширенной программой лояльности.
+#### Виды счетов
+1. **CheckingAccount** — базовый расчетный счет.
+2. **SavingsAccount** — накопительный счет с бонусной программой.
+3. **BonusAccount** — расширенный накопительный счет с дополнительным множителем бонусов.
+4. **CreditAccount** — кредитный счет с `overdraftLimit`.
 
-`Transaction` Описывает перевод или операцию списания/пополнения. Выделен интерфейс для инкапсуляции полей класса и добавления валидаций, обеспечения консистености данных
+`Transaction` — операция перевода или списания/пополнения.
 
 ```
 Transaction
 - id: int
-- sourceUUID: uuid
-- destinationUUID: uuid
-- amount: Money
+- srcAccountUUID: uuid.UUID
+- destAccountUUID: uuid.UUID
+- value: Money
 - status: PaymentStatus
 - type: TransactionType
 ```
 
-## Services & Interfaces
+`Event` — доменное событие (например, успешный перевод).
 
-`PaymentAccount` Интерфейс для работы со счетами в прикладном слое
+```
+Event
+- Name: string
+- AccountUUID: uuid.UUID
+- OccurredAt: time.Time
+```
+
+## Services & Interfaces
+`PaymentAccount` — интерфейс для работы со счетами в прикладном слое.
 
 ```
 type PaymentAccount interface {
     UserUUID() uuid.UUID
-    Deposit(value Money)
-    Withdraw(value Money) bool
-    CanWithdraw(value Money) bool
+    AccountUUID() uuid.UUID
+    Status() AccountStatus
+    Balance() Money
+    Deposit(m Money)
+    Withdraw(m Money) bool
+    CanWithdraw(m Money) bool
+    SetStatus(s AccountStatus)
 }
 ```
 
-`AccountRepository` Абстракция хранилища счетов
+`AccountRepository` — абстракция хранилища счетов.
 
 ```
 type AccountRepository interface {
     Create(account PaymentAccount) error
     ChangeStatus(accountUUID uuid.UUID, status AccountStatus) error
+    ByUUID(accountUUID uuid.UUID) (PaymentAccount, error)
 }
 ```
 
-`EventService`Сервис публикации событий (логи, метрики, etc)
+`EventService` — публикация событий.
 
 ```
-type EventPublisher interface {
-    Publish(event Event)
+type EventService interface {
+    Publish(event Event) error
+    QueryAll() []Event
 }
 ```
 
-`ProcessPaymentService` Сервис обработки платежей:
+`PaymentService` — сервис пополнения/снятия/переводов.
+
 ```
 type PaymentService interface {
-	Deposit(m domain.Money, aUUID uuid.UUID) error
-	Withdraw(m domain.Money, aUUID uuid.UUID) error
-	ProcessTransaction(t domain.Transaction) error
+    Deposit(m Money, aUUID uuid.UUID) error
+    Withdraw(m Money, aUUID uuid.UUID) error
+    ProcessTransaction(t Transaction) error
 }
 ```
 
-## Бизнес-правила 
+## Use Case
+`TransferUseCase` оркестрирует перевод: определяет комиссию по типу счета, выполняет списание/зачисление, обновляет статус транзакции и публикует события.
+
+## Бизнес-правила
 1. Снятие возможно только если `CanWithdraw` возвращает `true`.
 2. При статусе счета `Frozen` или `Closed` операции пополнения и списания не выполняются.
 3. Для кредитного счета учитывается `overdraftLimit`.
 4. Для накопительного/бонусного счета при пополнении начисляются бонусные баллы.
+5. Валюта операции должна совпадать с валютой счета.
 
 ## Связь с принципами ООП
-- **Инкапсуляция:** поля сущностей закрыты, доступ через методы.
-- **Абстракция:** через интерфейсы `PaymentAccount`, `AccountRepository`, `EventPublisher`.
-- **Полиморфизм:** разные типы счетов реализуют общее поведение по-разному.
-- **Наследование/композиция:** использование встраивания базового `Account` в специализированные типы.
+- **Инкапсуляция:** закрытые поля, доступ через методы.
+- **Наследование:** специализированные счета расширяют базовый `Account`.
+- **Композиция:** `Account` содержит `Money`, `SavingsAccount` содержит `BonusProgram`, `Client` содержит `Person`.
+- **Агрегация:** `Client` хранит ссылки на счета через `AccountRef`.
+- **Ассоциация:** `Transaction` знает о счетах через их UUID.
+- **Полиморфизм:**
+  - Подтипный: `PaymentAccount` и разные типы счетов.
+  - Ad hoc: расчет комиссии через `CalculateFee` с `type switch`.
+  - Параметрический: обобщенные `InMemoryMap`/`InMemoryList`.

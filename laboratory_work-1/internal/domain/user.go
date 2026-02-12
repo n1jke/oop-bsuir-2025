@@ -17,3 +17,14 @@ type Person struct {
 	surname      string
 	birthdayDate time.Time
 }
+
+func NewClient(clientUUID uuid.UUID, person Person) Client {
+	return Client{
+		clientUUID: clientUUID,
+		Person:     person,
+	}
+}
+
+func (c *Client) ClientUUID() uuid.UUID {
+	return c.clientUUID
+}
