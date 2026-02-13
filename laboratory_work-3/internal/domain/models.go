@@ -2,11 +2,6 @@ package domain
 
 import "fmt"
 
-// =========================================================
-// Файл: models.go
-// Описание: Модели данных системы.
-// =========================================================
-
 // Item - товар в заказе
 type Item struct {
 	ID    string
@@ -21,6 +16,7 @@ type Address struct {
 	Zip    string
 }
 
+// todo : implement discount logic
 // Order - заказ
 type Order struct {
 	ID          string
