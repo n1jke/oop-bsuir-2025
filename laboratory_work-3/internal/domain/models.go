@@ -1,17 +1,33 @@
-package main
+package domain
 
 import "fmt"
 
 // =========================================================
-// Файл: staff.go
-// Описание: Система управления персоналом склада.
+// Файл: models.go
+// Описание: Модели данных системы.
 // =========================================================
 
-type WarehouseWorker interface {
-	ProcessOrder()
-	AttendMeeting()
-	GetRest()
-	SwingingTheLead()
+// Item - товар в заказе
+type Item struct {
+	ID    string
+	Name  string
+	Price float64
+}
+
+// Address - адрес доставки
+type Address struct {
+	City   string
+	Street string
+	Zip    string
+}
+
+// Order - заказ
+type Order struct {
+	ID          string
+	Items       []Item
+	Type        string // "Standard", "Premium", "Budget", "International"
+	ClientEmail string
+	Destination Address
 }
 
 // HumanManager - Человек
@@ -52,15 +68,4 @@ func (r RobotPacker) AttendMeeting() {
 
 func (r RobotPacker) SwingingTheLead() {
 	panic("CRITICAL ERROR: Robot cannot waste our money (we hope so)")
-}
-
-// ManageWarehouse - функция, которая работает со списком работников
-func ManageWarehouse(workers []WarehouseWorker) {
-	fmt.Println("\n--- Warehouse Shift Started ---")
-	for _, worker := range workers {
-		worker.ProcessOrder()
-		worker.AttendMeeting()
-		worker.GetRest()
-		worker.SwingingTheLead()
-	}
 }

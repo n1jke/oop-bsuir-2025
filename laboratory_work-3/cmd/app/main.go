@@ -3,6 +3,10 @@ package main
 import (
 	"fmt"
 	"log"
+
+	"github.com/n1jke/oop-bsuir-2025/lr-3/internal/application"
+	"github.com/n1jke/oop-bsuir-2025/lr-3/internal/domain"
+	"github.com/n1jke/oop-bsuir-2025/lr-3/internal/infrastructure"
 )
 
 // =========================================================
@@ -11,20 +15,25 @@ import (
 // =========================================================
 
 func main() {
+	// 0. Инфраструктура
+	db := infrastructure.NewSQLDatabase()
+	clienMsg := infrastructure.NewSmtpMailer("smtp.google.com")
+	managerMsg := infrastructure.NewTelegramMailer("adifdhdf")
+
 	// 1. Создание заказа
-	order := Order{
+	order := domain.Order{
 		ID:   "ORD-256-X",
 		Type: "Premium",
-		Items: []Item{
+		Items: []domain.Item{
 			{ID: "1", Name: "Thermal Clips", Price: 1500},
 			{ID: "2", Name: "UNATCO Pass Card", Price: 50},
 		},
 		ClientEmail: "jeevacation@gmail.com",
-		Destination: Address{City: "Agartha", Street: "33 Thomas Street", Zip: "[REDACTED]"},
+		Destination: domain.Address{City: "Agartha", Street: "33 Thomas Street", Zip: "[REDACTED]"},
 	}
 
 	// 2. Инициализация процессора
-	processor := NewOrderProcessor()
+	processor := application.NewOrderProcessor(db, clienMsg, managerMsg)
 
 	// 3. Обработка заказа
 	if err := processor.Process(order); err != nil {
@@ -33,10 +42,10 @@ func main() {
 
 	// 4. Работа с обслуживанием
 	fmt.Println("\nTesting Warehouse Stuff:")
-	workers := []WarehouseWorker{
-		HumanManager{},
-		RobotPacker{Model: "George Droid"},
+	workers := []application.WarehouseWorker{
+		domain.HumanManager{},
+		domain.RobotPacker{Model: "George Droid"},
 	}
 
-	ManageWarehouse(workers)
+	application.ManageWarehouse(workers)
 }

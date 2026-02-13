@@ -1,9 +1,11 @@
-package main
+package infrastructure
 
 import (
 	"fmt"
 	"os"
 	"time"
+
+	"github.com/n1jke/oop-bsuir-2025/lr-3/internal/domain"
 )
 
 // =========================================================
@@ -13,19 +15,23 @@ import (
 
 // RandomSQLDatabase - имитация тяжелой базы данных
 type RandomSQLDatabase struct {
-	ConnectionString string
+	connectionString string
 }
 
-func NewMySQLDatabase() *RandomSQLDatabase {
-	return &RandomSQLDatabase{ConnectionString: "random://root:password@localhost:228/shop"}
+// todo : sync with connString ideas(use option Pattern or use default connString )
+func NewSQLDatabase(connString ...string) *RandomSQLDatabase {
+	if len(connString) == 1 {
+		return &RandomSQLDatabase{connectionString: connString[0]}
+	}
+	return &RandomSQLDatabase{connectionString: "random://root:password@localhost:228/shop"}
 }
 
 // Сохранение заказа в "базу данных"
-func (db *RandomSQLDatabase) SaveOrder(order Order, total float64) error {
-	fmt.Println("Connecting to RandomSQL at", db.ConnectionString, "...")
+func (db *RandomSQLDatabase) SaveOrder(order domain.Order, total float64) error {
+	fmt.Println("Connecting to RandomSQL at", db.connectionString, "...")
 	time.Sleep(500 * time.Millisecond) // Имитация задержки сети
 
-	file, err := os.OpenFile("orders_db.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile("orders_db.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		return err
 	}
@@ -37,14 +43,4 @@ func (db *RandomSQLDatabase) SaveOrder(order Order, total float64) error {
 	}
 	fmt.Println("Order saved successfully.")
 	return nil
-}
-
-// SmtpMailer - имитация почтового сервиса
-type SmtpMailer struct {
-	Server string
-}
-
-func (s *SmtpMailer) SendHtmlEmail(to string, subject string, body string) {
-	fmt.Printf(">> Connecting to SMTP server %s...\n", s.Server)
-	fmt.Printf(">> Sending EMAIL to %s\n   Subject: %s\n   Body: %s\n", to, subject, body)
 }

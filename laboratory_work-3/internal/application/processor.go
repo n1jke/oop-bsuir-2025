@@ -1,8 +1,10 @@
-package main
+package application
 
 import (
 	"errors"
 	"fmt"
+
+	"github.com/n1jke/oop-bsuir-2025/lr-3/internal/domain"
 )
 
 // =========================================================
@@ -10,19 +12,33 @@ import (
 // Описание: Основная бизнес-логика.
 // =========================================================
 
-type OrderProcessor struct {
-	database *RandomSQLDatabase
-	mailer   *SmtpMailer
+type Repository interface {
+	SaveOrder(order domain.Order, total float64) error
 }
 
-func NewOrderProcessor() *OrderProcessor {
+type ClientNotifier interface {
+	Notify(to string, subject string, body string)
+}
+
+type ManagerNotifier interface {
+	Notify(to string, subject string, body string)
+}
+
+type OrderProcessor struct {
+	database   Repository
+	clientMsg  ClientNotifier
+	managerMsg ManagerNotifier
+}
+
+func NewOrderProcessor(db Repository, cMsg ClientNotifier, mMsg ManagerNotifier) *OrderProcessor {
 	return &OrderProcessor{
-		database: NewMySQLDatabase(),
-		mailer:   &SmtpMailer{Server: "smtp.google.com"},
+		database:   db,
+		clientMsg:  cMsg,
+		managerMsg: mMsg,
 	}
 }
 
-func (op *OrderProcessor) Process(order Order) error {
+func (op *OrderProcessor) Process(order domain.Order) error {
 	fmt.Printf("--- Processing Order %s ---\n", order.ID)
 
 	// 1. Логика валидации
@@ -67,8 +83,14 @@ func (op *OrderProcessor) Process(order Order) error {
 	}
 
 	// 5. Логика уведомлений
+	// msgs
 	emailBody := fmt.Sprintf("<h1>Your order %s is confirmed!</h1><p>Total: %.2f</p>", order.ID, total)
-	op.mailer.SendHtmlEmail(order.ClientEmail, "Order Confirmation", emailBody)
+	telegramBody := fmt.Sprintf("<h1>Order for client %s with orderId %s is confirmed!</h1><p>Total: %.2f</p>", order.ClientEmail, order.ID, total)
+	//notify
+	op.clientMsg.Notify(order.ClientEmail, "Order Confirmation", emailBody)
+
+	// todo
+	op.managerMsg.Notify("manager", "Order Notification", telegramBody)
 
 	return nil
 }
