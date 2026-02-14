@@ -58,10 +58,10 @@ func (r RobotPacker) GetRest() {
 	fmt.Println("Robot was taken for maintenance")
 }
 
-func (r RobotPacker) AttendMeeting() {
-	fmt.Println("ERROR: Robot cannot attend meetings")
-}
+// func (r RobotPacker) AttendMeeting() {
+// 	fmt.Println("ERROR: Robot cannot attend meetings")
+// }
 
-func (r RobotPacker) SwingingTheLead() {
-	panic("CRITICAL ERROR: Robot cannot waste our money (we hope so)")
-}
+// func (r RobotPacker) SwingingTheLead() {
+// 	panic("CRITICAL ERROR: Robot cannot waste our money (we hope so)")
+// }

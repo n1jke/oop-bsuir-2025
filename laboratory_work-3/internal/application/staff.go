@@ -2,12 +2,20 @@ package application
 
 import "fmt"
 
-// todo define to some interfaces
 type WarehouseWorker interface {
 	ProcessOrder()
-	AttendMeeting()
 	GetRest()
+}
+
+type HumanWarehouseWorker interface {
+	WarehouseWorker
+	AttendMeeting()
 	SwingingTheLead()
+}
+
+type RobotWarehouseWorker interface {
+	WarehouseWorker
+	// may add specific methods
 }
 
 // ManageWarehouse - функция, которая работает со списком работников
@@ -16,8 +24,6 @@ func ManageWarehouse(workers []WarehouseWorker) {
 
 	for _, worker := range workers {
 		worker.ProcessOrder()
-		worker.AttendMeeting()
 		worker.GetRest()
-		worker.SwingingTheLead()
 	}
 }
