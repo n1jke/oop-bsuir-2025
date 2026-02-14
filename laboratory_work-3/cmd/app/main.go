@@ -18,8 +18,9 @@ func main() {
 
 	// 1. Создание заказа
 	order := &domain.Order{
-		ID:   "ORD-256-X",
-		Type: "Premium",
+		ID:              "ORD-256-X",
+		Type:            domain.Premium,
+		DiscountProgram: domain.Gold,
 		Items: []domain.Item{
 			{ID: "1", Name: "Thermal Clips", Price: 1500},
 			{ID: "2", Name: "UNATCO Pass Card", Price: 50},
