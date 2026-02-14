@@ -1,7 +1,6 @@
 package application
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/n1jke/oop-bsuir-2025/lr-3/internal/domain"
@@ -14,6 +13,7 @@ type Repository interface {
 type CacheService interface {
 	TryAddOrder(order *domain.Order) bool
 	RemoveOrder(id string)
+	FindOrder(id string) (*domain.Order, bool)
 }
 
 type Notifier interface {
@@ -27,7 +27,7 @@ type OrderProcessor struct {
 	managerMsg Notifier
 }
 
-func NewOrderProcessor(db Repository, cache CacheService, cMsg Notifier, mMsg Notifier) *OrderProcessor {
+func NewOrderProcessor(db Repository, cache CacheService, cMsg, mMsg Notifier) *OrderProcessor {
 	return &OrderProcessor{
 		database:   db,
 		cache:      cache,
@@ -39,63 +39,61 @@ func NewOrderProcessor(db Repository, cache CacheService, cMsg Notifier, mMsg No
 func (op *OrderProcessor) Process(order *domain.Order) error {
 	fmt.Printf("--- Processing Order %s ---\n", order.ID)
 
-	// 1. Логика валидации
-	if len(order.Items) == 0 {
-		return errors.New("order must have at least one item")
+	err := order.Validate()
+	if err != nil {
+		return fmt.Errorf("invalid order: %w", err)
 	}
 
-	if order.Destination.City == "" {
-		return errors.New("destination city is required")
+	total, err := calculateTotal(order)
+	if err != nil {
+		return fmt.Errorf("invalid order: %w", err)
 	}
 
-	// 2. Логика расчета суммы
-	var total float64
+	err = op.processCacheAndSave(order, total)
+	if err != nil {
+		return fmt.Errorf("failed to save order after processing: %w", err)
+	}
+
+	op.sendNotifications(order, total)
+
+	return nil
+}
+
+func calculateTotal(order *domain.Order) (float64, error) {
+	var base float64
 	for _, item := range order.Items {
-		total += item.Price
+		base += item.Price
 	}
 
-	// 3. Логика скидок и налогов
-	switch order.Type {
-	case "Standard":
-		// Стандартный налог
-		total *= 1.2
-	case "Premium":
-		// Скидка 10% + налог
-		total = (total * 0.9) * 1.2
-	case "Budget":
-		if len(order.Items) > 3 {
-			fmt.Println("Budget orders cannot have more than 3 items. Skipping.")
-			return nil
-		}
-	case "International":
-		total *= 1.5 // Таможенный сбор
+	base = order.DiscountProgram.CalculateDiscount(base)
 
-		if order.Destination.City == "Nowhere" {
-			return errors.New("cannot ship to Nowhere")
-		}
-	default:
-		return errors.New("unknown order type")
+	total, err := order.Type.CalculatePrice(base, order.Items)
+	if err != nil {
+		return 0, err
 	}
 
-	// 4.1 Защита от повторной обработки заказа
+	return total, nil
+}
+
+func (op *OrderProcessor) processCacheAndSave(order *domain.Order, total float64) error {
 	if !op.cache.TryAddOrder(order) {
 		fmt.Println("Order is already processed")
 		return nil
 	}
 
-	// 4. Логика сохранения
 	if err := op.database.SaveOrder(order, total); err != nil {
 		op.cache.RemoveOrder(order.ID)
 		return fmt.Errorf("database error: %w", err)
 	}
 
-	// 5. Логика уведомлений
-	// msgs
+	return nil
+}
+
+func (op *OrderProcessor) sendNotifications(order *domain.Order, total float64) {
 	emailBody := fmt.Sprintf("<h1>Your order %s is confirmed!</h1><p>Total: %.2f</p>", order.ID, total)
-	telegramBody := fmt.Sprintf("<h1>Order for client %s with orderId %s is confirmed!</h1><p>Total: %.2f</p>", order.ClientEmail, order.ID, total)
-	// notify
+	telegramBody := fmt.Sprintf("<h1>Order for client %s with orderId %s is confirmed!</h1><p>Total: %.2f</p>", order.ClientEmail,
+		order.ID, total)
+
 	op.clientMsg.Notify(order.ClientEmail, "Order Confirmation", emailBody)
 	op.managerMsg.Notify("manager", "Order Notification", telegramBody)
-
-	return nil
 }

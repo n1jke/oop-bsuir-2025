@@ -8,7 +8,7 @@ import (
 	"github.com/n1jke/oop-bsuir-2025/lr-3/internal/domain"
 )
 
-// RandomSQLDatabase - имитация тяжелой базы данных
+// RandomSQLDatabase - имитация тяжелой базы данных.
 type RandomSQLDatabase struct {
 	connectionString string
 }
@@ -21,7 +21,7 @@ func NewSQLDatabase(connString ...string) *RandomSQLDatabase {
 	return &RandomSQLDatabase{connectionString: "random://root:password@localhost:228/shop"}
 }
 
-// Сохранение заказа в "базу данных"
+// Сохранение заказа в "базу данных".
 func (db *RandomSQLDatabase) SaveOrder(order *domain.Order, total float64) error {
 	fmt.Println("Connecting to RandomSQL at", db.connectionString, "...")
 	time.Sleep(500 * time.Millisecond) // Имитация задержки сети

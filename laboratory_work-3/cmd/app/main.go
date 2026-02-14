@@ -13,7 +13,7 @@ func main() {
 	// 0. Инфраструктура
 	db := infrastructure.NewSQLDatabase()
 	cache := application.NewLocalCacheService()
-	clienMsg := infrastructure.NewSmtpMailer("smtp.google.com")
+	clienMsg := infrastructure.NewSMTPMailer("smtp.google.com")
 	managerMsg := infrastructure.NewTelegramMailer("adifdhdf")
 
 	// 1. Создание заказа

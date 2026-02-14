@@ -1,67 +1,95 @@
 package domain
 
-import "fmt"
+import (
+	"errors"
+)
 
-// Item - товар в заказе
+var (
+	ErrItemsCount       = errors.New("order must have at least one item")
+	ErrRequireCity      = errors.New("destination city is required")
+	ErrUnknowOrderType  = errors.New("unknown order type")
+	ErrBudgetOrderSizze = errors.New("budget orders cannot have more than 3 items")
+)
+
+// Item - товар в заказе.
 type Item struct {
 	ID    string
 	Name  string
 	Price float64
 }
 
-// Address - адрес доставки
+// Address - адрес доставки.
 type Address struct {
 	City   string
 	Street string
 	Zip    string
 }
 
-// todo : implement discount logic
-// Order - заказ
+// Order - заказ.
 type Order struct {
-	ID          string
-	Items       []Item
-	Type        string // "Standard", "Premium", "Budget", "International"
-	ClientEmail string
-	Destination Address
+	ID              string
+	Items           []Item
+	Type            OrderType
+	DiscountProgram Discount
+	ClientEmail     string
+	Destination     Address
 }
 
-// HumanManager - Человек
-type HumanManager struct{}
+func (o *Order) Validate() error {
+	if len(o.Items) == 0 {
+		return ErrItemsCount
+	}
 
-func (h HumanManager) ProcessOrder() {
-	fmt.Println("Manager is processing logic...")
+	if o.Destination.City == "" {
+		return ErrRequireCity
+	}
+
+	return nil
 }
 
-func (h HumanManager) AttendMeeting() {
-	fmt.Println("Manager is boring at the meeting...")
+type Discount string
+
+const (
+	Gold   Discount = "Gold"
+	Silver Discount = "Silver"
+	Newbie Discount = "Newbie"
+)
+
+func (d Discount) CalculateDiscount(base float64) float64 {
+	switch d {
+	case "Gold":
+		return base * 0.85
+	case "Silver":
+		return base * 0.90
+	default:
+		return base
+	}
 }
 
-func (h HumanManager) GetRest() {
-	fmt.Println("Manager is taking a break...")
+type OrderType string
+
+const (
+	Standart      OrderType = "Standart"
+	Premium       OrderType = "Premium"
+	Budget        OrderType = "Budget"
+	International OrderType = "International"
+)
+
+func (ot OrderType) CalculatePrice(base float64, items []Item) (float64, error) {
+	switch ot {
+	case Standart:
+		base *= 1.2
+	case Premium:
+		base = (base * 0.9) * 1.2
+	case Budget:
+		if len(items) > 3 {
+			return 0, ErrBudgetOrderSizze
+		}
+	case International:
+		base *= 1.5
+	default:
+		return 0, ErrUnknowOrderType
+	}
+
+	return base, nil
 }
-
-func (h HumanManager) SwingingTheLead() {
-	fmt.Println("Manager is watching reels...")
-}
-
-// RobotPacker - Робот
-type RobotPacker struct {
-	Model string
-}
-
-func (r RobotPacker) ProcessOrder() {
-	fmt.Println("Robot " + r.Model + " is packing boxes...")
-}
-
-func (r RobotPacker) GetRest() {
-	fmt.Println("Robot was taken for maintenance")
-}
-
-// func (r RobotPacker) AttendMeeting() {
-// 	fmt.Println("ERROR: Robot cannot attend meetings")
-// }
-
-// func (r RobotPacker) SwingingTheLead() {
-// 	panic("CRITICAL ERROR: Robot cannot waste our money (we hope so)")
-// }

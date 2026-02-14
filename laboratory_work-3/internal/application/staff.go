@@ -18,7 +18,7 @@ type RobotWarehouseWorker interface {
 	// may add specific methods
 }
 
-// ManageWarehouse - функция, которая работает со списком работников
+// ManageWarehouse - функция, которая работает со списком работников.
 func ManageWarehouse(workers []WarehouseWorker) {
 	fmt.Println("\n--- Warehouse Shift Started ---")
 
