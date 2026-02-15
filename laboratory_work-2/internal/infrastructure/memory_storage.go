@@ -2,6 +2,7 @@ package infrastructure
 
 import (
 	"errors"
+	"sync"
 
 	"github.com/google/uuid"
 
@@ -10,52 +11,87 @@ import (
 
 var ErrNotFound = errors.New("not found")
 
-type MemoryAccountStorage struct {
-	byID map[uuid.UUID]*domain.Account
+type CacheStorage[K comparable, V any] struct {
+	mu   sync.RWMutex
+	data map[K]V
 }
 
-func NewMemoryAccountStorage() *MemoryAccountStorage {
-	return &MemoryAccountStorage{byID: make(map[uuid.UUID]*domain.Account)}
+func NewCacheStorage[K comparable, V any]() *CacheStorage[K, V] {
+	return &CacheStorage[K, V]{
+		mu:   sync.RWMutex{},
+		data: make(map[K]V),
+	}
 }
 
-func (s *MemoryAccountStorage) Save(account *domain.Account) error {
-	s.byID[account.ID()] = account
-	return nil
+func (cs *CacheStorage[K, V]) Save(k K, v V) {
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
+	cs.data[k] = v
 }
 
-func (s *MemoryAccountStorage) ByID(accountID uuid.UUID) (*domain.Account, error) {
-	account, exists := s.byID[accountID]
-	if !exists {
+func (cs *CacheStorage[K, V]) ByID(k K) (*V, error) {
+	cs.mu.RLock()
+	defer cs.mu.RUnlock()
+
+	val, exist := cs.data[k]
+	if !exist {
 		return nil, ErrNotFound
 	}
 
-	return account, nil
+	return &val, nil
 }
 
-func (s *MemoryAccountStorage) UpdateStatus(accountID uuid.UUID, status domain.AccountStatus) error {
-	account, exists := s.byID[accountID]
+func (cs *CacheStorage[K, V]) Delete(k K) error {
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
+
+	if _, exists := cs.data[k]; !exists {
+		return ErrNotFound
+	}
+
+	delete(cs.data, k)
+	return nil
+}
+
+type AccountCache struct {
+	*CacheStorage[uuid.UUID, *domain.Account]
+}
+
+func NewAccountCacheStorage() *AccountCache {
+	cs := NewCacheStorage[uuid.UUID, *domain.Account]()
+	return &AccountCache{cs}
+}
+
+func (ac *AccountCache) UpdateStatus(accountID uuid.UUID, status domain.AccountStatus) error {
+	ac.mu.Lock()
+	defer ac.mu.Unlock()
+
+	account, exists := ac.data[accountID]
 	if !exists {
 		return ErrNotFound
 	}
 
 	account.ChangeStatus(status)
-
 	return nil
 }
 
-type MemoryEventStorage struct {
-	events []*domain.Event
+type EventCache struct {
+	*CacheStorage[uuid.UUID, *domain.Event]
 }
 
-func NewMemoryEventStorage() *MemoryEventStorage {
-	return &MemoryEventStorage{events: make([]*domain.Event, 0, 16)}
+func NewEventCacheStorage() *EventCache {
+	cs := NewCacheStorage[uuid.UUID, *domain.Event]()
+	return &EventCache{cs}
 }
 
-func (s *MemoryEventStorage) Save(event *domain.Event) error {
-	s.events = append(s.events, event)
-	return nil
-}
+func (ec *EventCache) QueryAll() []*domain.Event {
+	ec.mu.RLock()
+	defer ec.mu.RUnlock()
 
-func (s *MemoryEventStorage) QueryAll() []*domain.Event {
-	return s.events
+	events := make([]*domain.Event, len(ec.data), 0)
+	for _, v := range ec.data {
+		events = append(events, v)
+	}
+
+	return events
 }
