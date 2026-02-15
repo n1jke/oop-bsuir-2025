@@ -1,34 +1,66 @@
 package domain
 
-import "github.com/google/uuid"
+import (
+	"errors"
+
+	"github.com/google/uuid"
+)
+
+var (
+	ErrInactiveAccount   = errors.New("account is not active")
+	ErrNegativeAmount    = errors.New("amount of money is negative")
+	ErrInsufficientFunds = errors.New("insufficient funds")
+)
 
 // Account - bank account entity.
 type Account struct {
 	id       uuid.UUID
 	number   string
 	clientID uuid.UUID
-	currency Currency
-	balance  int
+	balance  Money
 	status   AccountStatus
 }
 
+type SavingsAccount struct {
+	Account
+	BonusProgram BonusProgram
+}
+
+type CreditAccount struct {
+	Account
+	overdraftLimit Money
+}
+
 // AccountStatus - value object for bank account status.
-type AccountStatus string
+type AccountStatus int
 
 const (
-	AccountActive AccountStatus = "active"
-	AccountFrozen AccountStatus = "frozen"
-	AccountClosed AccountStatus = "closed"
+	Active AccountStatus = iota + 1
+	Frozen
+	Closed
 )
 
-func NewAccount(id uuid.UUID, number string, clientID uuid.UUID, curr Currency) *Account {
+func NewAccount(number string, clientID uuid.UUID, curr Currency) *Account {
 	return &Account{
-		id:       id,
+		id:       uuid.New(),
 		number:   number,
 		clientID: clientID,
-		currency: curr,
-		balance:  0,
-		status:   AccountActive,
+		balance:  NewMoney(0, curr),
+		status:   Active,
+	}
+}
+
+func NewSavingsAccount(number string, accountUUID uuid.UUID, curr Currency, tier BonusTier) *SavingsAccount {
+	return &SavingsAccount{
+		Account:      *NewAccount(number, accountUUID, curr),
+		BonusProgram: NewBonusProgram(tier),
+	}
+}
+
+func NewCreditAccount(number string, accountUUID uuid.UUID, curr Currency, overdraftLimit Money) *CreditAccount {
+	return &CreditAccount{
+		Account:        *NewAccount(number, accountUUID, curr),
+		overdraftLimit: overdraftLimit,
 	}
 }
 
@@ -45,41 +77,70 @@ func (a *Account) ClientID() uuid.UUID {
 }
 
 func (a *Account) Balance() Money {
-	return NewMoney(a.balance, a.currency)
+	return a.balance
 }
 
 func (a *Account) Status() AccountStatus {
 	return a.status
 }
 
-func (a *Account) Deposit(amount int) {
-	if a.status != AccountActive || amount <= 0 {
-		return
+func (a *Account) Deposit(value Money) error {
+	if a.status != Active {
+		return ErrInactiveAccount
+	}
+	if value.Amount() < 0 {
+		return ErrNegativeAmount
 	}
 
-	a.balance += amount
+	a.balance.Add(value)
+	return nil
 }
 
-func (a *Account) Withdraw(amount int) bool {
-	if !a.CanWithdraw(amount) {
-		return false
+func (s *SavingsAccount) Deposit(value Money) error {
+	err := s.Account.Deposit(value)
+	if err != nil {
+		return err
 	}
 
-	a.balance -= amount
-
-	return true
+	s.BonusProgram.Accrue(value)
+	return nil
 }
 
-func (a *Account) CanWithdraw(amount int) bool {
-	if a.status != AccountActive || amount <= 0 {
-		return false
+func (a *Account) Withdraw(value Money) error {
+	if err := a.CanWithdraw(value); err != nil {
+		return err
 	}
 
-	return a.balance >= amount
+	a.balance.Sub(value)
+	return nil
+}
+
+func (a *Account) CanWithdraw(value Money) error {
+	if a.status != Active {
+		return ErrInactiveAccount
+	}
+
+	if a.balance.amount < value.amount {
+		return ErrInsufficientFunds
+	}
+
+	return nil
+}
+
+func (c *CreditAccount) CanWithdraw(value Money) error {
+	if c.status != Active {
+		return ErrInactiveAccount
+	}
+
+	if c.balance.amount+c.overdraftLimit.amount < value.amount {
+		return ErrInsufficientFunds
+	}
+
+	return nil
 }
 
 func (a *Account) IsActive() bool {
-	return a.status == AccountActive
+	return a.status == Active
 }
 
 func (a *Account) ChangeStatus(status AccountStatus) {

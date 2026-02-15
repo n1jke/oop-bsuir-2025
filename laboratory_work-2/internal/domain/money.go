@@ -23,12 +23,14 @@ func (m Money) Currency() Currency {
 	return m.curr
 }
 
-func (m Money) Add(other Money) Money {
-	return Money{amount: m.amount + other.amount, curr: m.curr}
+func (m *Money) Add(other Money) {
+	// todo: handle differenc currency
+	m.amount += other.amount
 }
 
-func (m Money) Sub(other Money) Money {
-	return Money{amount: m.amount - other.amount, curr: m.curr}
+func (m *Money) Sub(other Money) {
+	// todo: handle differenc currency
+	m.amount -= other.amount
 }
 
 func (m Money) String() string {

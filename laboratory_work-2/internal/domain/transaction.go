@@ -7,27 +7,27 @@ type Transaction struct {
 	id            uuid.UUID
 	fromAccountID uuid.UUID
 	toAccountID   uuid.UUID
-	amount        int
-	currency      Currency
+	value         Money
 	status        TransactionStatus
 }
 
 // TransactionStatus - value object for transaction status.
-type TransactionStatus string
+type TransactionStatus int
 
 const (
-	Initiated TransactionStatus = "initiated"
-	Completed TransactionStatus = "completed"
-	Failed    TransactionStatus = "failed"
+	Initiated TransactionStatus = iota
+	Pending
+	Declined
+	Failed
+	Completed
 )
 
-func NewTransaction(id, fromAccountID, toAccountID uuid.UUID, amount int, curr Currency) *Transaction {
+func NewTransaction(id, fromAccountID, toAccountID uuid.UUID, value Money) *Transaction {
 	return &Transaction{
 		id:            id,
 		fromAccountID: fromAccountID,
 		toAccountID:   toAccountID,
-		amount:        amount,
-		currency:      curr,
+		value:         value,
 		status:        Initiated,
 	}
 }
@@ -44,12 +44,8 @@ func (t *Transaction) ToAccountID() uuid.UUID {
 	return t.toAccountID
 }
 
-func (t *Transaction) Amount() int {
-	return t.amount
-}
-
-func (t *Transaction) Currency() Currency {
-	return t.currency
+func (t *Transaction) Value() Money {
+	return t.value
 }
 
 func (t *Transaction) Status() TransactionStatus {

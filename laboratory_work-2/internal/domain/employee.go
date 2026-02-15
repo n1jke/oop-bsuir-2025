@@ -1,6 +1,10 @@
 package domain
 
-import "github.com/google/uuid"
+import (
+	"fmt"
+
+	"github.com/google/uuid"
+)
 
 // Employee - bank Employee entity.
 type Employee struct {
@@ -10,9 +14,9 @@ type Employee struct {
 	employed bool
 }
 
-func NewEmployee(id, branchID uuid.UUID, position string) *Employee {
+func NewEmployee(branchID uuid.UUID, position string) *Employee {
 	return &Employee{
-		id:       id,
+		id:       uuid.New(),
 		branchID: branchID,
 		position: position,
 		employed: true,
@@ -41,4 +45,9 @@ func (e *Employee) Fire() {
 
 func (e Employee) IsEmployed() bool {
 	return e.employed
+}
+
+func (e Employee) Work() {
+	// simulate work
+	fmt.Println("do some work")
 }
