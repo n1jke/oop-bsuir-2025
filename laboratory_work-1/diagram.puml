@@ -1,4 +1,4 @@
-@startuml
+@startuml domain-model
 
 namespace domain {
 
@@ -6,7 +6,7 @@ class Bank {
   -id: uuid
   -name: string
   -license: string
-  +ID(): uuid
+  +ID(): uuid 
   +Name(): string
   +License(): string
 }
@@ -119,6 +119,7 @@ class Event {
   +ID(): uuid
   +AggregateID(): uuid
   +Type(): string
+  +OccurredAt(): datetime
 }
 
 }
@@ -136,6 +137,6 @@ domain.Account "1" -- "0..*" domain.Card
 domain.Account "1" -- "0..*" domain.Transaction 
 
 domain.Event "0..*" -- "1" domain.Account
-domain.Event "1" -- "1" domain.Transaction
+domain.Event "0..*" -- "0..1" domain.Transaction
 
 @enduml

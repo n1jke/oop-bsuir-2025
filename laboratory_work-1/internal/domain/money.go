@@ -1,10 +1,12 @@
 package domain
 
+// Money - {amount of money and currency}.
 type Money struct {
 	amount int
 	curr   Currency
 }
 
+// Currency - value object for currency.
 type Currency string
 
 func NewMoney(amount int, curr Currency) Money {

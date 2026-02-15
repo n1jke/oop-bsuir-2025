@@ -1,30 +1,44 @@
 package domain
 
-import (
-	"time"
+import "github.com/google/uuid"
 
-	"github.com/google/uuid"
-)
-
+// Client - bank customer entity.
 type Client struct {
-	clientUUID uuid.UUID
-	Person
+	id       uuid.UUID
+	passport string
+	fullName string
+	active   bool
 }
 
-type Person struct {
-	firstname    string
-	lastname     string
-	surname      string
-	birthdayDate time.Time
-}
-
-func NewClient(clientUUID uuid.UUID, person Person) Client {
-	return Client{
-		clientUUID: clientUUID,
-		Person:     person,
+func NewClient(id uuid.UUID, passport, fullName string) *Client {
+	return &Client{
+		id:       id,
+		passport: passport,
+		fullName: fullName,
+		active:   true,
 	}
 }
 
-func (c *Client) ClientUUID() uuid.UUID {
-	return c.clientUUID
+func (c Client) ID() uuid.UUID {
+	return c.id
+}
+
+func (c Client) Passport() string {
+	return c.passport
+}
+
+func (c Client) FullName() string {
+	return c.fullName
+}
+
+func (c *Client) Activate() {
+	c.active = true
+}
+
+func (c *Client) Deactivate() {
+	c.active = false
+}
+
+func (c Client) IsActive() bool {
+	return c.active
 }

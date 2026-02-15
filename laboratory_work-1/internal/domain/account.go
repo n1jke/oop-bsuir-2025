@@ -1,115 +1,87 @@
 package domain
 
-import (
-	"github.com/google/uuid"
-)
+import "github.com/google/uuid"
 
+// Account - bank account entity.
 type Account struct {
-	userUUID    uuid.UUID
-	accountUUID uuid.UUID
-	status      AccountStatus
-	balance     Money
+	id       uuid.UUID
+	number   string
+	clientID uuid.UUID
+	currency Currency
+	balance  int
+	status   AccountStatus
 }
 
-type CheckingAccount struct {
-	Account
-}
-
-type SavingsAccount struct {
-	Account
-	BonusProgram BonusProgram
-}
-
-type CreditAccount struct {
-	Account
-	overdraftLimit Money
-}
-
-type AccountStatus int
+// AccountStatus - value object for bank account status.
+type AccountStatus string
 
 const (
-	Active AccountStatus = iota + 1
-	Frozen
-	Closed
+	AccountActive AccountStatus = "active"
+	AccountFrozen AccountStatus = "frozen"
+	AccountClosed AccountStatus = "closed"
 )
 
-func NewAccount(userUUID uuid.UUID, accountUUID uuid.UUID, curr Currency) Account {
-	return Account{
-		userUUID:    userUUID,
-		accountUUID: accountUUID,
-		status:      Active,
-		balance:     Money{amount: 0, curr: curr},
+func NewAccount(id uuid.UUID, number string, clientID uuid.UUID, curr Currency) *Account {
+	return &Account{
+		id:       id,
+		number:   number,
+		clientID: clientID,
+		currency: curr,
+		balance:  0,
+		status:   AccountActive,
 	}
 }
 
-func NewCheckingAccount(userUUID uuid.UUID, accountUUID uuid.UUID, curr Currency) *CheckingAccount {
-	return &CheckingAccount{Account: NewAccount(userUUID, accountUUID, curr)}
+func (a *Account) ID() uuid.UUID {
+	return a.id
 }
 
-func NewSavingsAccount(userUUID uuid.UUID, accountUUID uuid.UUID, curr Currency, tier BonusTier) *SavingsAccount {
-	return &SavingsAccount{
-		Account:      NewAccount(userUUID, accountUUID, curr),
-		BonusProgram: NewBonusProgram(tier),
-	}
+func (a *Account) Number() string {
+	return a.number
 }
 
-func NewCreditAccount(userUUID uuid.UUID, accountUUID uuid.UUID, curr Currency, overdraftLimit Money) *CreditAccount {
-	return &CreditAccount{
-		Account:        NewAccount(userUUID, accountUUID, curr),
-		overdraftLimit: overdraftLimit,
-	}
+func (a *Account) ClientID() uuid.UUID {
+	return a.clientID
 }
 
-func (a *Account) UserUUID() uuid.UUID {
-	return a.userUUID
-}
-
-func (a *Account) AccountUUID() uuid.UUID {
-	return a.accountUUID
+func (a *Account) Balance() Money {
+	return NewMoney(a.balance, a.currency)
 }
 
 func (a *Account) Status() AccountStatus {
 	return a.status
 }
 
-func (a *Account) SetStatus(status AccountStatus) {
-	a.status = status
-}
-
-func (a *Account) Balance() Money {
-	return a.balance
-}
-
-func (a *Account) Deposit(value Money) {
-	if a.status != Active {
+func (a *Account) Deposit(amount int) {
+	if a.status != AccountActive || amount <= 0 {
 		return
 	}
-	a.balance = a.balance.Add(value)
+
+	a.balance += amount
 }
 
-func (s *SavingsAccount) Deposit(value Money) {
-	s.Account.Deposit(value)
-	s.BonusProgram.Accrue(value)
-}
-
-func (a *Account) Withdraw(value Money) bool {
-	if !a.CanWithdraw(value) {
+func (a *Account) Withdraw(amount int) bool {
+	if !a.CanWithdraw(amount) {
 		return false
 	}
-	a.balance = a.balance.Sub(value)
+
+	a.balance -= amount
+
 	return true
 }
 
-func (a *Account) CanWithdraw(value Money) bool {
-	if a.status != Active {
+func (a *Account) CanWithdraw(amount int) bool {
+	if a.status != AccountActive || amount <= 0 {
 		return false
 	}
-	return a.balance.amount >= value.amount
+
+	return a.balance >= amount
 }
 
-func (c *CreditAccount) CanWithdraw(value Money) bool {
-	if c.status != Active {
-		return false
-	}
-	return c.balance.amount+c.overdraftLimit.amount >= value.amount
+func (a *Account) IsActive() bool {
+	return a.status == AccountActive
+}
+
+func (a *Account) ChangeStatus(status AccountStatus) {
+	a.status = status
 }
