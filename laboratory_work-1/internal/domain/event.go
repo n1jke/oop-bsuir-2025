@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -37,4 +38,10 @@ func (e Event) Type() string {
 
 func (e Event) OccurredAt() time.Time {
 	return e.occurredAt
+}
+
+func (e Event) String() string {
+	return fmt.Sprintf(
+		"Event{id: %s, aggregateID: %s, type: %q, occurredAt: %s}",
+		e.id.String(), e.aggregateID.String(), e.eventType, e.occurredAt.Format(time.RFC3339))
 }

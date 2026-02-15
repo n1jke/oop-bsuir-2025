@@ -2,26 +2,27 @@ package services
 
 import (
 	"github.com/google/uuid"
-	"github.com/n1jke/oop-bsuir-2025/lr-1/internal/application"
+
 	"github.com/n1jke/oop-bsuir-2025/lr-1/internal/domain"
+	"github.com/n1jke/oop-bsuir-2025/lr-1/internal/infrastructure"
 )
 
 type AccountRepository struct {
-	storage AccountStorage
+	storage *infrastructure.MemoryAccountStorage
 }
 
-func NewAccountRepository(storage AccountStorage) *AccountRepository {
+func NewAccountRepository(storage *infrastructure.MemoryAccountStorage) *AccountRepository {
 	return &AccountRepository{storage: storage}
 }
 
-func (r *AccountRepository) Create(account application.PaymentAccount) error {
+func (r *AccountRepository) Create(account *domain.Account) error {
 	return r.storage.Save(account)
 }
 
-func (r *AccountRepository) ChangeStatus(accountUUID uuid.UUID, status domain.AccountStatus) error {
-	return r.storage.UpdateStatus(accountUUID, status)
+func (r *AccountRepository) ChangeStatus(accountID uuid.UUID, status domain.AccountStatus) error {
+	return r.storage.UpdateStatus(accountID, status)
 }
 
-func (r *AccountRepository) ByUUID(accountUUID uuid.UUID) (application.PaymentAccount, error) {
-	return r.storage.ByUUID(accountUUID)
+func (r *AccountRepository) ByID(accountID uuid.UUID) (*domain.Account, error) {
+	return r.storage.ByID(accountID)
 }
