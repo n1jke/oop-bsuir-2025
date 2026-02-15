@@ -1,169 +1,141 @@
-@startuml classDiagram
+@startuml
+
+namespace domain {
+
+class Bank {
+  -id: uuid
+  -name: string
+  -license: string
+  +ID(): uuid
+  +Name(): string
+  +License(): string
+}
+
+class Branch {
+  -id: uuid
+  -bankID: uuid
+  -address: string
+  -opened: bool
+  +ID(): uuid
+  +BankID(): uuid
+  +Address(): string
+  +Open()
+  +Close()
+  +IsOpened(): bool
+}
 
 class Client {
-  -clientUUID: uuid.UUID
-  -Person: Person
-  -accounts: []AccountRef
-  +ClientUUID(): uuid.UUID
-  +AddAccount(account: AccountRef)
-  +Accounts(): []AccountRef
-}
-
-class Person {
-  -firstname: string
-  -lastname: string
-  -surname: string
-  -birthdayDate: time.Time
-}
-
-interface AccountRef {
-  +AccountUUID(): uuid.UUID
-}
-
-class Transaction {
-  -id: int
-  -srcAccountUUID: uuid.UUID
-  -destAccountUUID: uuid.UUID
-  -status: PaymentStatus
-  -value: Money
-  -txType: TransactionType
-  +ID(): int
-  +SourceAccountUUID(): uuid.UUID
-  +DestinationAccountUUID(): uuid.UUID
-  +Status(): PaymentStatus
-  +Value(): Money
-  +Type(): TransactionType
-  +SetStatus(status: PaymentStatus)
-}
-
-enum PaymentStatus {
-  Initiated
-  Pending
-  Declined
-  Failed
-  Completed
-}
-
-enum TransactionType {
-  Transfer
-  Deposit
-  Withdraw
-}
-
-class Money {
-  -amount: int
-  -curr: Currency
-  +NewMoney(amount: int, curr: Currency): Money
-  +Amount(): int
-  +Currency(): Currency
-  +Add(other: Money): Money
-  +Sub(other: Money): Money
-}
-
-class Currency {}
-
-class Event {
-  -Name: string
-  -AccountUUID: uuid.UUID
-  -OccurredAt: time.Time
-}
-
-class BonusProgram {
-  -points: int
-  -tier: BonusTier
-  +NewBonusProgram(tier: BonusTier): BonusProgram
-  +Accrue(value: Money)
-  +ApplyBonus(points: int): bool
-  +Bonus(): int
-}
-
-enum BonusTier {
-  Bronze
-  Silver
-  Gold
+  -id: uuid
+  -passport: string
+  -fullName: string
+  -active: bool
+  +ID(): uuid
+  +FullName(): string
+  +Activate()
+  +Deactivate()
+  +IsActive(): bool
 }
 
 class Account {
-  -userUUID: uuid.UUID
-  -accountUUID: uuid.UUID
-  -status: AccountStatus
-  -balance: Money
-  +UserUUID(): uuid.UUID
-  +AccountUUID(): uuid.UUID
-  +Status(): AccountStatus
-  +SetStatus(status: AccountStatus)
-  +Balance(): Money
-  +Deposit(value: Money)
-  +Withdraw(value: Money): bool
-  +CanWithdraw(value: Money): bool
+  -id: uuid
+  -number: string
+  -clientID: uuid
+  -currency: string
+  -balance: int
+  -status: string
+  +ID(): uuid
+  +Number(): string
+  +Balance(): int
+  +Deposit(amount: int)
+  +Withdraw(amount: int): bool
+  +Block()
+  +IsActive(): bool
 }
 
-enum AccountStatus {
-  Active
-  Frozen
-  Closed
+class Transaction {
+  -id: uuid
+  -fromAccountID: uuid
+  -toAccountID: uuid
+  -amount: int
+  -currency: string
+  -status: string
+  +ID(): uuid
+  +Amount(): int
+  +Currency(): string
+  +Complete()
+  +Fail()
+  +IsCompleted(): bool
 }
 
-class CheckingAccount {}
-
-class SavingsAccount {
-  +BonusProgram: BonusProgram
-  +Deposit(value: Money)
+class Card {
+  -id: uuid
+  -number: string
+  -accountID: uuid
+  -active: bool
+  +ID(): uuid
+  +Number(): string
+  +Activate()
+  +Block()
+  +IsActive(): bool
 }
 
-class BonusAccount {
-  -bonusMultiplier: int
-  +Deposit(value: Money)
+class Employee {
+  -id: uuid
+  -branchID: uuid
+  -position: string
+  -employed: bool
+  +ID(): uuid
+  +Hire()
+  +Fire()
+  +IsEmployed(): bool
 }
 
-class CreditAccount {
-  -overdraftLimit: Money
-  +CanWithdraw(value: Money): bool
+class Loan {
+  -id: uuid
+  -clientID: uuid
+  -amount: int
+  -approved: bool
+  +ID(): uuid
+  +Approve()
+  +Reject()
+  +IsApproved(): bool
 }
 
-interface PaymentAccount {
-  +UserUUID(): uuid.UUID
-  +AccountUUID(): uuid.UUID
-  +Status(): AccountStatus
-  +Balance(): Money
-  +Deposit(m: Money)
-  +Withdraw(m: Money): bool
-  +CanWithdraw(m: Money): bool
-  +SetStatus(s: AccountStatus)
+class ATM {
+  -id: uuid
+  -branchID: uuid
+  -cash: int
+  +ID(): uuid
+  +BranchID(): uuid
+  +Withdraw(amount: int): bool
+  +Deposit(amount: int)
 }
 
-interface PaymentService {
-  +Deposit(m: Money, aUUID: uuid.UUID): error
-  +Withdraw(m: Money, aUUID: uuid.UUID): error
-  +ProcessTransaction(t: Transaction): error
+class Event {
+  -id: uuid
+  -aggregateID: uuid
+  -type: string
+  -occurredAt: datetime
+  +ID(): uuid
+  +AggregateID(): uuid
+  +Type(): string
 }
 
-interface AccountRepository {
-  +Create(a: PaymentAccount): error
-  +ChangeStatus(aUUID: uuid.UUID, s: AccountStatus): error
-  +ByUUID(aUUID: uuid.UUID): (PaymentAccount, error)
 }
 
-interface EventService {
-  +Publish(e: Event): error
-  +QueryAll(): []Event
-}
+domain.Bank "1" -- "1..*" domain.Branch
+domain.Bank "1" -- "0..*" domain.Client
 
-Client *-- Person : composition
-Client o-- AccountRef : accounts
+domain.Branch "1" -- "0..*" domain.Employee
+domain.Branch "1" -- "0..*" domain.ATM
 
-SavingsAccount *-- BonusProgram : composition
-Account *-- Money : composition
-Transaction *-- Money : composition
+domain.Client "1" -- "1..*" domain.Account
+domain.Client "1" -- "0..*" domain.Loan
 
-Account ..|> AccountRef
-Account ..|> PaymentAccount
+domain.Account "1" -- "0..*" domain.Card
+domain.Account "1" -- "0..*" domain.Transaction 
 
-Account <|-- CheckingAccount
-Account <|-- SavingsAccount
-SavingsAccount <|-- BonusAccount
-Account <|-- CreditAccount
-
-Transaction --> Account : src/dest UUID
+domain.Event "0..*" -- "1" domain.Account
+domain.Event "1" -- "1" domain.Transaction
 
 @enduml
