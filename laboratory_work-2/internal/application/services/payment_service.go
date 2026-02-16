@@ -9,46 +9,46 @@ import (
 )
 
 var (
-	ErrAccountNotActive = errors.New("account is not active")
-	ErrWithdrawRejected = errors.New("withdraw rejected")
 	ErrCurrencyMismatch = errors.New("currency mismatch")
 )
 
 type PaymentService struct {
-	accounts *AccountRepository
+	accounts AccountStorage
 }
 
-func NewPaymentService(accounts *AccountRepository) *PaymentService {
+func NewPaymentService(accounts AccountStorage) *PaymentService {
 	return &PaymentService{accounts: accounts}
 }
 
-func (s *PaymentService) Deposit(amount int, accountID uuid.UUID) error {
+func (s *PaymentService) Deposit(amount domain.Money, accountID uuid.UUID) error {
 	account, err := s.accounts.ByID(accountID)
 	if err != nil {
 		return err
 	}
 
-	if !account.IsActive() {
-		return ErrAccountNotActive
+	if account.Balance().Currency() != amount.Currency() {
+		return ErrCurrencyMismatch
 	}
 
-	account.Deposit(amount)
+	if err := account.Deposit(amount); err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func (s *PaymentService) Withdraw(amount int, accountID uuid.UUID) error {
+func (s *PaymentService) Withdraw(amount domain.Money, accountID uuid.UUID) error {
 	account, err := s.accounts.ByID(accountID)
 	if err != nil {
 		return err
 	}
 
-	if !account.IsActive() {
-		return ErrAccountNotActive
+	if account.Balance().Currency() != amount.Currency() {
+		return ErrCurrencyMismatch
 	}
 
-	if !account.Withdraw(amount) {
-		return ErrWithdrawRejected
+	if err := account.Withdraw(amount); err != nil {
+		return err
 	}
 
 	return nil
@@ -65,16 +65,19 @@ func (s *PaymentService) ProcessTransaction(t *domain.Transaction) error {
 		return err
 	}
 
-	if src.Balance().Currency() != t.Currency() || dst.Balance().Currency() != t.Currency() {
+	if src.Balance().Currency() != t.Value().Currency() || dst.Balance().Currency() != t.Value().Currency() {
 		return ErrCurrencyMismatch
 	}
 
-	if err := s.Withdraw(t.Amount(), t.FromAccountID()); err != nil {
+	if err := s.Withdraw(t.Value(), t.FromAccountID()); err != nil {
 		return err
 	}
 
-	if err := s.Deposit(t.Amount(), t.ToAccountID()); err != nil {
-		_ = s.Deposit(t.Amount(), t.FromAccountID())
+	if err := s.Deposit(t.Value(), t.ToAccountID()); err != nil {
+		if rollbackErr := s.Deposit(t.Value(), t.FromAccountID()); rollbackErr != nil {
+			return errors.Join(err, rollbackErr)
+		}
+
 		return err
 	}
 

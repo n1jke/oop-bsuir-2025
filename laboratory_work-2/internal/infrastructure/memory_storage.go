@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/n1jke/oop-bsuir-2025/lr-2/internal/application/services"
 	"github.com/n1jke/oop-bsuir-2025/lr-2/internal/domain"
 )
 
@@ -23,22 +24,27 @@ func NewCacheStorage[K comparable, V any]() *CacheStorage[K, V] {
 	}
 }
 
-func (cs *CacheStorage[K, V]) Save(k K, v V) {
+func (cs *CacheStorage[K, V]) Save(k K, v V) error {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
+
 	cs.data[k] = v
+
+	return nil
 }
 
-func (cs *CacheStorage[K, V]) ByID(k K) (*V, error) {
+func (cs *CacheStorage[K, V]) ByID(k K) (V, error) {
 	cs.mu.RLock()
 	defer cs.mu.RUnlock()
 
+	var zero V
+
 	val, exist := cs.data[k]
 	if !exist {
-		return nil, ErrNotFound
+		return zero, ErrNotFound
 	}
 
-	return &val, nil
+	return val, nil
 }
 
 func (cs *CacheStorage[K, V]) Delete(k K) error {
@@ -54,12 +60,16 @@ func (cs *CacheStorage[K, V]) Delete(k K) error {
 }
 
 type AccountCache struct {
-	*CacheStorage[uuid.UUID, *domain.Account]
+	*CacheStorage[uuid.UUID, services.PaymentAccount]
 }
 
 func NewAccountCacheStorage() *AccountCache {
-	cs := NewCacheStorage[uuid.UUID, *domain.Account]()
+	cs := NewCacheStorage[uuid.UUID, services.PaymentAccount]()
 	return &AccountCache{cs}
+}
+
+func NewMemoryAccountStorage() *AccountCache {
+	return NewAccountCacheStorage()
 }
 
 func (ac *AccountCache) UpdateStatus(accountID uuid.UUID, status domain.AccountStatus) error {
@@ -72,25 +82,31 @@ func (ac *AccountCache) UpdateStatus(accountID uuid.UUID, status domain.AccountS
 	}
 
 	account.ChangeStatus(status)
+	ac.data[accountID] = account
 	return nil
 }
 
 type EventCache struct {
-	*CacheStorage[uuid.UUID, *domain.Event]
+	*CacheStorage[uuid.UUID, domain.Event]
 }
 
 func NewEventCacheStorage() *EventCache {
-	cs := NewCacheStorage[uuid.UUID, *domain.Event]()
+	cs := NewCacheStorage[uuid.UUID, domain.Event]()
 	return &EventCache{cs}
+}
+
+func NewMemoryEventStorage() *EventCache {
+	return NewEventCacheStorage()
 }
 
 func (ec *EventCache) QueryAll() []*domain.Event {
 	ec.mu.RLock()
 	defer ec.mu.RUnlock()
 
-	events := make([]*domain.Event, len(ec.data), 0)
+	events := make([]*domain.Event, 0, len(ec.data))
 	for _, v := range ec.data {
-		events = append(events, v)
+		event := v
+		events = append(events, &event)
 	}
 
 	return events
