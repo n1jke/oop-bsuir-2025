@@ -74,6 +74,7 @@ func main() {
 	if err := transferUseCase.Execute(failedTx); err != nil {
 		fmt.Printf("Expected failed transfer: %v\n", err)
 	}
+
 	fmt.Println()
 
 	// bonuses
@@ -90,6 +91,7 @@ func main() {
 	}); err != nil {
 		fmt.Printf("Expected non-savings bonus failure: %v\n", err)
 	}
+
 	fmt.Println()
 
 	// card & atm
@@ -119,6 +121,7 @@ func main() {
 
 	fmt.Println()
 	fmt.Println("Events")
+
 	for _, e := range events {
 		fmt.Println(e)
 	}

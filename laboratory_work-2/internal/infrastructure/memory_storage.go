@@ -56,6 +56,7 @@ func (cs *CacheStorage[K, V]) Delete(k K) error {
 	}
 
 	delete(cs.data, k)
+
 	return nil
 }
 
@@ -83,6 +84,7 @@ func (ac *AccountCache) UpdateStatus(accountID uuid.UUID, status domain.AccountS
 
 	account.ChangeStatus(status)
 	ac.data[accountID] = account
+
 	return nil
 }
 

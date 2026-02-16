@@ -25,7 +25,9 @@ func (b *BonusProgram) ApplyBonus(points int) bool {
 	if b.points < points {
 		return false
 	}
+
 	b.points -= points
+
 	return true
 }
 

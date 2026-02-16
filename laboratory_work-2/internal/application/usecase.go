@@ -36,8 +36,10 @@ func (uc *TransferUseCase) Execute(t *domain.Transaction) error {
 	}
 
 	t.ChangeStatus(domain.Pending)
+
 	if err := uc.payments.ProcessTransaction(t); err != nil {
 		t.ChangeStatus(domain.Failed)
+
 		failEvent := domain.NewEvent(uuid.New(), t.ID(), "transaction_failed")
 		if publishErr := uc.events.Save(failEvent.ID(), *failEvent); publishErr != nil {
 			return errors.Join(err, publishErr)
@@ -47,6 +49,7 @@ func (uc *TransferUseCase) Execute(t *domain.Transaction) error {
 	}
 
 	t.ChangeStatus(domain.Completed)
+
 	doneEvent := domain.NewEvent(uuid.New(), t.ID(), "transaction_completed")
 	if err := uc.events.Save(doneEvent.ID(), *doneEvent); err != nil {
 		return err
@@ -107,5 +110,6 @@ func (uc *BonusRedeemUseCase) Execute(command BonusRedeemCommand) error {
 	}
 
 	doneEvent := domain.NewEvent(uuid.New(), account.ID(), "bonus_redeemed")
+
 	return uc.events.Save(doneEvent.ID(), *doneEvent)
 }

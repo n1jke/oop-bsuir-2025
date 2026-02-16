@@ -91,11 +91,13 @@ func (a *Account) Deposit(value Money) error {
 	if a.status != Active {
 		return ErrInactiveAccount
 	}
+
 	if value.Amount() < 0 {
 		return ErrNegativeAmount
 	}
 
 	a.balance.Add(value)
+
 	return nil
 }
 
@@ -106,6 +108,7 @@ func (s *SavingsAccount) Deposit(value Money) error {
 	}
 
 	s.BonusProgram.Accrue(value)
+
 	return nil
 }
 
@@ -131,6 +134,7 @@ func (a *Account) Withdraw(value Money) error {
 	}
 
 	a.balance.Sub(value)
+
 	return nil
 }
 
@@ -164,6 +168,7 @@ func (c *CreditAccount) Withdraw(value Money) error {
 	}
 
 	c.balance.Sub(value)
+
 	return nil
 }
 
