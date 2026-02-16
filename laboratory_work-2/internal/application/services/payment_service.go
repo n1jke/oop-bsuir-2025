@@ -8,9 +8,7 @@ import (
 	"github.com/n1jke/oop-bsuir-2025/lr-2/internal/domain"
 )
 
-var (
-	ErrCurrencyMismatch = errors.New("currency mismatch")
-)
+var ErrCurrencyMismatch = errors.New("currency mismatch")
 
 type PaymentService struct {
 	accounts AccountStorage
