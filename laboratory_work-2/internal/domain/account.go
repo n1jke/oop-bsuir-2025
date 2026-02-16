@@ -7,9 +7,12 @@ import (
 )
 
 var (
-	ErrInactiveAccount   = errors.New("account is not active")
-	ErrNegativeAmount    = errors.New("amount of money is negative")
-	ErrInsufficientFunds = errors.New("insufficient funds")
+	ErrInactiveAccount      = errors.New("account is not active")
+	ErrNegativeAmount       = errors.New("amount of money is negative")
+	ErrInsufficientFunds    = errors.New("insufficient funds")
+	ErrBonusBalanceTooLow   = errors.New("bonus balance is too low")
+	ErrInvalidBonusRedeem   = errors.New("bonus points must be positive")
+	ErrSavingsOnlyOperation = errors.New("operation is allowed only for savings account")
 )
 
 // Account - bank account entity.
@@ -106,6 +109,22 @@ func (s *SavingsAccount) Deposit(value Money) error {
 	return nil
 }
 
+func (s *SavingsAccount) BonusPoints() int {
+	return s.BonusProgram.Bonus()
+}
+
+func (s *SavingsAccount) RedeemBonus(points int) error {
+	if points <= 0 {
+		return ErrInvalidBonusRedeem
+	}
+
+	if !s.BonusProgram.ApplyBonus(points) {
+		return ErrBonusBalanceTooLow
+	}
+
+	return nil
+}
+
 func (a *Account) Withdraw(value Money) error {
 	if err := a.CanWithdraw(value); err != nil {
 		return err
@@ -136,6 +155,15 @@ func (c *CreditAccount) CanWithdraw(value Money) error {
 		return ErrInsufficientFunds
 	}
 
+	return nil
+}
+
+func (c *CreditAccount) Withdraw(value Money) error {
+	if err := c.CanWithdraw(value); err != nil {
+		return err
+	}
+
+	c.balance.Sub(value)
 	return nil
 }
 
